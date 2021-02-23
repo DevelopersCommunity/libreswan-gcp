@@ -65,7 +65,7 @@ Run the `vpngcp.ps1` PowerShell script to create a VM and configure it as a VPN 
   - `us-east1-c`
   - `us-east1-d`
 - `PublicFqdn`: Dynamic DNS name
-- `Psk`: IKEv2 pre-shared key
+- `Psk`: IPSec pre-shared key
 - `IPSecIdentifier`: IPSec identifier
 - `DynDnsServer`: Dynamic DNS update server
   - No-IP.com: `dynupdate.no-ip.com`
