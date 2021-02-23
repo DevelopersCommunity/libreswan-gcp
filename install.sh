@@ -1,5 +1,6 @@
 #!/bin/bash
 #
+# VM startup script - https://cloud.google.com/compute/docs/startupscript
 # Install and configure IKEv2/IPSec PSK VPN server components.
 
 if grep -i "^#net.ipv4.ip_forward=1$" /etc/sysctl.conf; then

@@ -36,12 +36,18 @@ param(
     $DynDnsPassword
 )
 
-gcloud compute firewall-rules create allow-isakmp `
-    --allow=udp:500 `
-    --target-tags=ipsec
-gcloud compute firewall-rules create allow-ipsec-nat-t `
-    --allow=udp:4500 `
-    --target-tags=ipsec
+if ( `
+    !(gcloud compute firewall-rules list `
+        --filter="name~'^allow-isakmp-ipsec-nat-t$'" `
+        --format=json |
+        ConvertFrom-Json)
+)
+{
+    gcloud compute firewall-rules create allow-isakmp-ipsec-nat-t `
+        --allow=udp:500`,udp:4500 `
+        --target-tags=vpn-server
+
+}
 
 gcloud compute instances create $InstanceName `
     --image-family=debian-10 `
@@ -51,6 +57,6 @@ gcloud compute instances create $InstanceName `
     --shielded-vtpm `
     --can-ip-forward `
     --machine-type=f1-micro `
-    --tags=ipsec `
+    --tags=vpn-server `
     --metadata=publicfqdn=$PublicFqdn`,psk=$($Psk | ConvertFrom-SecureString -AsPlainText)`,ipsecidentifier=$IPSecIdentifier`,dyndnsserver=$DynDnsServer`,dyndnsuser=$DynDnsUser`,dyndnspassword=$($DynDnsPassword | ConvertFrom-SecureString -AsPlainText)`,subnet=$(gcloud compute networks subnets describe default --region=$($Zone.Substring(0, $Zone.Length - 2)) --format='value(ipCidrRange)') `
     --metadata-from-file=startup-script=.\install.sh
