@@ -37,12 +37,11 @@ param(
 )
 
 if ( `
-    !(gcloud compute firewall-rules list `
-        --filter="name~'^allow-isakmp-ipsec-nat-t$'" `
-        --format=json |
+        !(gcloud compute firewall-rules list `
+            --filter="name~'^allow-isakmp-ipsec-nat-t$'" `
+            --format=json |
         ConvertFrom-Json)
-)
-{
+) {
     gcloud compute firewall-rules create allow-isakmp-ipsec-nat-t `
         --allow=udp:500`,udp:4500 `
         --target-tags=vpn-server
