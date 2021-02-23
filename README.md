@@ -19,7 +19,7 @@ gcloud components install beta
 
 ## Project billing configuration
 
-Before creating your first VM instance, you need to link a billing account to the GCP project you will use to create your VPN server.
+Before creating your first VM instance, you need to link a billing account to the GCP project you will use to host your VPN server.
 
 A default project and billing account are provisioned when you create a free trial GCP account.
 
@@ -105,7 +105,7 @@ Use the following values from the parameters provided to the VM installation scr
 - Remote ID: `PublicFqdn`
 - Local ID: `IPSecIdentifier`
 - User Authentication: None
-- Use Certificate: disabled
+- Use Certificate: off
 - Secret: `Psk`
 
 ![iOS native IKEv2 VPN client](vpnios.png)
