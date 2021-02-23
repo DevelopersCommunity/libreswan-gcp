@@ -2,7 +2,7 @@
 
 How to create a free personal VPN Server on [Google Cloud Platform (GCP)](https://cloud.google.com/free) with [libreswan](https://libreswan.org/wiki/VPN_server_for_remote_clients_using_IKEv2).
 
-Both [Android 11](https://source.android.com/devices/architecture/modular-system/ipsec) and [iOS 4.0+](https://developer.apple.com/documentation/devicemanagement/vpn/ikev2) devices can connect to IKEv2/IPSec VPN servers with their native VPN clients.
+Both [Android 11 or higher](https://source.android.com/devices/architecture/modular-system/ipsec) and [iOS 4.0+](https://developer.apple.com/documentation/devicemanagement/vpn/ikev2) devices can connect to IKEv2/IPSec VPN servers with their native VPN clients.
 
 ## PowerShell installation
 
@@ -105,7 +105,7 @@ Use the following values from the parameters provided to the VM installation scr
 - Remote ID: `PublicFqdn`
 - Local ID: `IPSecIdentifier`
 - User Authentication: None
-- User Certificate: disabled
+- Use Certificate: disabled
 - Secret: `Psk`
 
 ![iOS native IKEv2 VPN client](vpnios.png)
