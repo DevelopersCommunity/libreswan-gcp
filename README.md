@@ -86,27 +86,43 @@ Execute the following command to open an SSH session to your VM and check if the
 gcloud compute ssh <instance name> --zone=<zone>
 ```
 
-## Android 11 native IKEv2/IPSec PSK VPN client configuration
+## VPN client configuration
 
-Use the following values from the parameters provided to the VM installation script:
+The VM creation script outputs the required information to configure the VPN client. If necessary, use the following commands to recover it.
+
+```powershell
+gcloud compute instances describe <instance name> `
+    --zone <instance zone> `
+    --flatten="metadata[publicfqdn]"
+gcloud compute instances describe <instance name> `
+    --zone <instance zone> `
+    --flatten="metadata[ipsecidentifier]"
+gcloud compute instances describe <instance name> `
+    --zone <instance zone> `
+    --flatten="metadata[psk]"
+```
+
+### Android 11 native IKEv2/IPSec PSK VPN client configuration
+
+Use the following values to configure the Android VPN client:
 
 - Type: IKEv2/IPSec PSK
-- Server address: `PublicFqdn`
-- IPSec identifier: `IPSecIdentifier`
-- IPSec pre-shared key: random key returned by the VM creation script
+- Server address: `publicfqdn`
+- IPSec identifier: `ipsecidentifier`
+- IPSec pre-shared key: `psk`
 
 ![Android native IKEv2/IPSec PSK VPN client](vpnandroid.png)
 
-## iOS native IKEv2 VPN client configuration
+### iOS native IKEv2 VPN client configuration
 
-Use the following values from the parameters provided to the VM installation script:
+Use the following values to configure the iOS VPN client:
 
 - Type: IKEv2
-- Server: `PublicFqdn`
-- Remote ID: `PublicFqdn`
-- Local ID: `IPSecIdentifier`
+- Server: `publicfqdn`
+- Remote ID: `publicfqdn`
+- Local ID: `ipsecidentifier`
 - User Authentication: None
 - Use Certificate: off
-- Secret: random secret returned by the VM creation script
+- Secret: `psk`
 
 ![iOS native IKEv2 VPN client](vpnios.png)
