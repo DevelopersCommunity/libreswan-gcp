@@ -6,8 +6,18 @@ param(
     [string]
     $InstanceName,
     [Parameter(Mandatory = $true)]
-    [ValidateNotNullOrEmpty()]
-    [ValidateSet("us-west1-a", "us-west1-b", "us-west1-c", "us-central1-a", "us-central1-b", "us-central1-c", "us-central1-f", "us-east1-b", "us-east1-c", "us-east1-d")]
+    [ValidateSet(
+        "us-west1-a",
+        "us-west1-b",
+        "us-west1-c",
+        "us-central1-a",
+        "us-central1-b",
+        "us-central1-c",
+        "us-central1-f",
+        "us-east1-b",
+        "us-east1-c",
+        "us-east1-d"
+    )]
     [string]
     $Zone,
     [Parameter(Mandatory = $true)]
@@ -60,11 +70,15 @@ if (!(gcloud compute firewall-rules list `
         ConvertFrom-Json)
 ) {
     gcloud compute firewall-rules create allow-isakmp-ipsec-nat-t `
-        --allow=udp:500`,udp:4500 `
+        --allow="udp:500,udp:4500" `
         --target-tags=vpn-server
 }
 
 $Psk = New-Psk -Size 24
+$DDPwd = $DynDnsPassword | ConvertFrom-SecureString -AsPlainText 
+$Subnet = gcloud compute networks subnets describe default `
+    --region=$($Zone.Substring(0, $Zone.Length - 2)) `
+    --format="value(ipCidrRange)"
 
 gcloud compute instances create $InstanceName `
     --image-family=debian-10 `
@@ -75,15 +89,39 @@ gcloud compute instances create $InstanceName `
     --can-ip-forward `
     --machine-type=f1-micro `
     --tags=vpn-server `
-    --metadata=publicfqdn=$PublicFqdn`,psk=$Psk`,ipsecidentifier=$IPSecIdentifier`,dyndnsserver=$DynDnsServer`,dyndnsuser=$DynDnsUser`,dyndnspassword=$($DynDnsPassword | ConvertFrom-SecureString -AsPlainText)`,subnet=$(gcloud compute networks subnets describe default --region=$($Zone.Substring(0, $Zone.Length - 2)) --format='value(ipCidrRange)') `
+    --metadata=$(-join
+    (
+        "publicfqdn=$PublicFqdn,",
+        "psk=$Psk,",
+        "ipsecidentifier=$IPSecIdentifier,",
+        "dyndnsserver=$DynDnsServer,",
+        "dyndnsuser=$DynDnsUser,",
+        "dyndnspassword=$DDPwd,",
+        "subnet=$Subnet"
+    )) `
     --metadata-from-file=startup-script=.\install.sh
 
 "----------------------"
 "VPN client parameters:"
 "----------------------"
-
-, $([PSCustomObject]@{Android = "Server address"; iOS = "Server"; Value = "$PublicFqdn" },
-    [PSCustomObject]@{Android = "N/A"; iOS = "Remote ID"; Value = "$PublicFqdn" },
-    [PSCustomObject]@{Android = "IPSec identifier"; iOS = "Local ID"; Value = "$IPSecIdentifier" },
-    [PSCustomObject]@{Android = "IPSec pre-shared key"; iOS = "Secret"; Value = "$Psk" }) |
+, $([PSCustomObject]@{
+        Android = "Server address";
+        iOS     = "Server";
+        Value   = "$PublicFqdn" 
+    },
+    [PSCustomObject]@{
+        Android = "N/A";
+        iOS     = "Remote ID";
+        Value   = "$PublicFqdn" 
+    },
+    [PSCustomObject]@{
+        Android = "IPSec identifier";
+        iOS     = "Local ID";
+        Value   = "$IPSecIdentifier"
+    },
+    [PSCustomObject]@{
+        Android = "IPSec pre-shared key";
+        iOS     = "Secret";
+        Value   = "$Psk"
+    }) |
 Format-Table
