@@ -65,13 +65,14 @@ Run the `vpngcp.ps1` PowerShell script to create a VM and configure it as a VPN 
   - `us-east1-c`
   - `us-east1-d`
 - `PublicFqdn`: Dynamic DNS name
-- `Psk`: IPSec pre-shared key
 - `IPSecIdentifier`: IPSec identifier
 - `DynDnsServer`: Dynamic DNS update server
   - No-IP.com: `dynupdate.no-ip.com`
   - Google Domains: `domains.google.com`
 - `DynDnsUser`: Dynamic DNS service user name
 - `DynDnsPassword`: Dynamic DNS service password
+
+The script will output the information required to configure the VPN client.
 
 ```powershell
 .\vpngcp.ps1
@@ -91,8 +92,8 @@ Use the following values from the parameters provided to the VM installation scr
 
 - Type: IKEv2/IPSec PSK
 - Server address: `PublicFqdn`
-- IPSec Identifier: `IPSecIdentifier`
-- IPSec pre-shared key: `Psk`
+- IPSec identifier: `IPSecIdentifier`
+- IPSec pre-shared key: random key returned by the VM creation script
 
 ![Android native IKEv2/IPSec PSK VPN client](vpnandroid.png)
 
@@ -106,6 +107,6 @@ Use the following values from the parameters provided to the VM installation scr
 - Local ID: `IPSecIdentifier`
 - User Authentication: None
 - Use Certificate: off
-- Secret: `Psk`
+- Secret: random secret returned by the VM creation script
 
 ![iOS native IKEv2 VPN client](vpnios.png)
