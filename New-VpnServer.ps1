@@ -37,7 +37,6 @@ param(
     [string]
     $DynDnsUser,
     [Parameter(Mandatory = $true)]
-    [ValidateNotNullOrEmpty()]
     [securestring]
     $DynDnsPassword
 )
@@ -57,7 +56,6 @@ function ConvertTo-Base64 {
 function New-Psk {
     param (
         [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
         [int]
         $Size
     )
