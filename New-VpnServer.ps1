@@ -101,9 +101,6 @@ gcloud compute instances create $InstanceName `
     )) `
     --metadata-from-file=startup-script=.\install.sh
 
-"----------------------"
-"VPN client parameters:"
-"----------------------"
 , $([PSCustomObject]@{
         Android = "Server address";
         iOS     = "Server";
@@ -123,5 +120,4 @@ gcloud compute instances create $InstanceName `
         Android = "IPSec pre-shared key";
         iOS     = "Secret";
         Value   = "$Psk"
-    }) |
-Format-Table
+    })

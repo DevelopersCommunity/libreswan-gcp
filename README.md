@@ -75,7 +75,7 @@ Run the `vpngcp.ps1` PowerShell script to create a VM and configure it as a VPN 
 The script will output the information required to configure the VPN client.
 
 ```powershell
-.\vpngcp.ps1
+.\New-VpnServer.ps1
 ```
 
 ## SSH
