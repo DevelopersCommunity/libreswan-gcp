@@ -101,23 +101,23 @@ gcloud compute instances create $InstanceName `
     )) `
     --metadata-from-file=startup-script=.\install.sh
 
-$([PSCustomObject]@{
-        Android = "Server address";
-        iOS     = "Server";
-        Value   = "$PublicFqdn" 
-    },
-    [PSCustomObject]@{
-        Android = "N/A";
-        iOS     = "Remote ID";
-        Value   = "$PublicFqdn" 
-    },
-    [PSCustomObject]@{
-        Android = "IPSec identifier";
-        iOS     = "Local ID";
-        Value   = "$IPSecIdentifier"
-    },
-    [PSCustomObject]@{
-        Android = "IPSec pre-shared key";
-        iOS     = "Secret";
-        Value   = "$Psk"
-    })
+[PSCustomObject]@{
+    Android = "Server address";
+    iOS     = "Server";
+    Value   = "$PublicFqdn" 
+},
+[PSCustomObject]@{
+    Android = "N/A";
+    iOS     = "Remote ID";
+    Value   = "$PublicFqdn" 
+},
+[PSCustomObject]@{
+    Android = "IPSec identifier";
+    iOS     = "Local ID";
+    Value   = "$IPSecIdentifier"
+},
+[PSCustomObject]@{
+    Android = "IPSec pre-shared key";
+    iOS     = "Secret";
+    Value   = "$Psk"
+}
