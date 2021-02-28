@@ -6,22 +6,37 @@
 read_metadata() {
   declare -r api_prefix=\
 "http://metadata.google.internal/computeMetadata/v1/instance/attributes/"
-  echo $(curl -s ${api_prefix}${1} -H "Metadata-Flavor: Google")
+  echo "$(curl -s ${api_prefix}$1 -H "Metadata-Flavor: Google")"
+}
+
+trim() {
+  local string
+  string="$*"
+  # remove leading whitespace characters
+  string="${string#"${string%%[![:space:]]*}"}"
+  # remove trailing whitespace characters
+  string="${string%"${string##*[![:space:]]}"}"   
+  echo "$string"
 }
 
 enable_ip_forward() {
-  echo "${1/\#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1}" > \
-    /etc/sysctl.conf
+  echo "${1/\#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1}" > /etc/sysctl.conf
   sysctl -w net.ipv4.ip_forward=1
 }
 
 configure_libreswan() {
-  apt-get -y install libreswan
+  if ! apt-get -y install libreswan; then
+    echo "Unable to install libreswan" >&2
+    exit 1
+  fi
 
-  declare -r snet="$(read_metadata "subnet")"
-  sed -i \
-    "/^\s*virtual_private=/s/$/,%v4:\!${snet/\//\\\/},%v4:\!192.168.66.0\/24/" \
-    /etc/ipsec.conf
+  declare -r ipsec_conf=$(cat /etc/ipsec.conf)
+  local vp
+  vp="${ipsec_conf#"${ipsec_conf%%virtual_private=*}"}"
+  vp="${vp%%[[:cntrl:]]*}"
+  declare -r subnet="$(read_metadata "subnet")"
+  declare -r new_vp="${vp},%v4:"'!'"${subnet},%v4:"'!192.168.66.0/24'
+  echo "${ipsec_conf/${vp}/${new_vp}}" > /etc/ipsec.conf
 
   declare -r public_fqdn="$(read_metadata "publicfqdn")"
   declare -r ipsec_id="$(read_metadata "ipsecidentifier")"
@@ -33,7 +48,8 @@ conn ikev2-psk
 	leftsubnet=0.0.0.0/0
 	# Clients
 	right=%any
-	# your addresspool to use - you might need NAT rules if providing full internet to clients
+	# your addresspool to use
+	# you might need NAT rules if providing full internet to clients
 	rightaddresspool=192.168.66.1-192.168.66.254
 	rightid=@${ipsec_id}
 	#
@@ -66,10 +82,13 @@ EOF
 }
 
 configure_nftables() {
-  apt-get -y install nftables
+  if ! apt-get -y install nftables; then
+    echo "Unable to install nftables" >&2
+    exit 1
+  fi
+
   declare -r route="$(ip route show to default)"
-  local dev="${route#default via*dev }"
-  dev="${dev% }"
+  declare -r dev=$(trim "${route#default via +([0-9.]) dev}")
 
   cat <<EOF >> /etc/nftables.conf
 
@@ -86,7 +105,10 @@ EOF
 }
 
 configure_ddclient() {
-  DEBIAN_FRONTEND=noninteractive apt-get -y install ddclient
+  if ! DEBIAN_FRONTEND=noninteractive apt-get -y install ddclient; then
+    echo "Unable to install ddclient" >&2
+    exit 1
+  fi
 
   declare -r public_fqdn="$(read_metadata "publicfqdn")"
   declare -r dd_server="$(read_metadata "dyndnsserver")"
@@ -106,6 +128,10 @@ EOF
 }
 
 main() {
+  shopt -q extglob
+  declare -r extglob_set=$?
+  ((extglob_set)) && shopt -s extglob
+
   declare -r sysctl_conf=$(cat /etc/sysctl.conf)
   if [[ "$sysctl_conf" =~ .*^#net.ipv4.ip_forward=1$.* ]]; then
     enable_ip_forward "$sysctl_conf"
@@ -124,6 +150,8 @@ main() {
   if [[ ! "$packages" =~ .*^ddclient[[:space:]]+install$.* ]]; then
     configure_ddclient
   fi
+
+  ((extglob_set)) && shopt -u extglob
 }
 
 main "$@"
