@@ -73,7 +73,7 @@ if (!(gcloud compute firewall-rules list `
 }
 
 $Psk = New-Psk -Size 24
-$DDPwd = $DynDnsPassword | ConvertFrom-SecureString -AsPlainText 
+$DDPwd = $DynDnsPassword | ConvertFrom-SecureString -AsPlainText
 $Subnet = gcloud compute networks subnets describe default `
     --region=$($Zone.Substring(0, $Zone.Length - 2)) `
     --format="value(ipCidrRange)"
@@ -102,12 +102,12 @@ gcloud compute instances create $InstanceName `
 [PSCustomObject]@{
     Android = "Server address";
     iOS     = "Server";
-    Value   = "$PublicFqdn" 
+    Value   = "$PublicFqdn"
 },
 [PSCustomObject]@{
     Android = "N/A";
     iOS     = "Remote ID";
-    Value   = "$PublicFqdn" 
+    Value   = "$PublicFqdn"
 },
 [PSCustomObject]@{
     Android = "IPSec identifier";

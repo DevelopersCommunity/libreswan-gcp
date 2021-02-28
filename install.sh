@@ -3,24 +3,28 @@
 # VM startup script - https://cloud.google.com/compute/docs/startupscript
 # Install and configure IKEv2/IPSec PSK VPN server components.
 
-if grep -i "^#net.ipv4.ip_forward=1$" /etc/sysctl.conf; then
-  sed -i "/^#net\.ipv4\.ip_forward=1$/s/^#//" /etc/sysctl.conf
-  sysctl -w net.ipv4.ip_forward=1
-fi
-
-api_prefix=\
+read_metadata() {
+  declare -r api_prefix=\
 "http://metadata.google.internal/computeMetadata/v1/instance/attributes/"
+  echo $(curl -s ${api_prefix}${1} -H "Metadata-Flavor: Google")
+}
 
-if ! dpkg --get-selections | grep -q "^libreswan\s\+install$"; then
+enable_ip_forward() {
+  echo "${1/\#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1}" > \
+    /etc/sysctl.conf
+  sysctl -w net.ipv4.ip_forward=1
+}
+
+configure_libreswan() {
   apt-get -y install libreswan
 
-  subnet="$(curl ${api_prefix}subnet -H "Metadata-Flavor: Google")"
+  declare -r snet="$(read_metadata "subnet")"
   sed -i \
-    "/^\s*virtual_private=/s/$/,%v4:\!$(echo ${subnet} | sed 's/\//\\\//'),%v4:\!192.168.66.0\/24/" \
+    "/^\s*virtual_private=/s/$/,%v4:\!${snet/\//\\\/},%v4:\!192.168.66.0\/24/" \
     /etc/ipsec.conf
 
-  public_fqdn="$(curl ${api_prefix}publicfqdn -H "Metadata-Flavor: Google")"
-  ipsec_id="$(curl ${api_prefix}ipsecidentifier -H "Metadata-Flavor: Google")"
+  declare -r public_fqdn="$(read_metadata "publicfqdn")"
+  declare -r ipsec_id="$(read_metadata "ipsecidentifier")"
   cat <<EOF > /etc/ipsec.d/ikev2-psk.conf
 conn ikev2-psk
 	authby=secret
@@ -51,49 +55,75 @@ conn ikev2-psk
 	ike=aes_gcm-aes_xcbc,aes_cbc-sha2
 EOF
 
-  psk="$(curl ${api_prefix}psk -H "Metadata-Flavor: Google")"
-  cat <<EOF > /etc/ipsec.d/ikev2-psk.secrets
-: PSK "$psk"
+    declare -r psk="$(read_metadata "psk")"
+    cat <<EOF > /etc/ipsec.d/ikev2-psk.secrets
+: PSK "${psk}"
 EOF
   chmod 600 /etc/ipsec.d/ikev2-psk.secrets
 
   systemctl enable ipsec.service
   systemctl start ipsec.service
-fi
+}
 
-if ! dpkg --get-selections | grep -q "^nftables\s\+install$"; then
+configure_nftables() {
   apt-get -y install nftables
+  declare -r route="$(ip route show to default)"
+  local dev="${route#default via*dev }"
+  dev="${dev% }"
 
   cat <<EOF >> /etc/nftables.conf
 
 table ip nat {
 	chain postrouting {
 		type nat hook postrouting priority 100; policy accept;
-		ip saddr 192.168.66.0/24 oif "$(ip route show to default | awk '{print $5}')" masquerade
+		ip saddr 192.168.66.0/24 oif "${dev}" masquerade
 	}
 }
 EOF
 
   systemctl enable nftables.service
   systemctl start nftables.service
-fi
+}
 
-if ! dpkg --get-selections | grep -q "^ddclient\s\+install$"; then
+configure_ddclient() {
   DEBIAN_FRONTEND=noninteractive apt-get -y install ddclient
 
-  public_fqdn="$(curl ${api_prefix}publicfqdn -H "Metadata-Flavor: Google")"
-  dd_server="$(curl ${api_prefix}dyndnsserver -H "Metadata-Flavor: Google")"
-  dd_user="$(curl ${api_prefix}dyndnsuser -H "Metadata-Flavor: Google")"
-  dd_password="$(curl ${api_prefix}dyndnspassword -H "Metadata-Flavor: Google")"
+  declare -r public_fqdn="$(read_metadata "publicfqdn")"
+  declare -r dd_server="$(read_metadata "dyndnsserver")"
+  declare -r dd_user="$(read_metadata "dyndnsuser")"
+  declare -r dd_password="$(read_metadata "dyndnspassword")"
   cat <<EOF > /etc/ddclient.conf
 protocol=dyndns2
 use=web
-server=$dd_server
+server=${dd_server}
 ssl=yes
-login=$dd_user
-password='$dd_password'
-$public_fqdn
+login=${dd_user}
+password='${dd_password}'
+${public_fqdn}
 EOF
 
   systemctl restart ddclient.service
-fi
+}
+
+main() {
+  declare -r sysctl_conf=$(cat /etc/sysctl.conf)
+  if [[ "$sysctl_conf" =~ .*^#net.ipv4.ip_forward=1$.* ]]; then
+    enable_ip_forward "$sysctl_conf"
+  fi
+
+  declare -r packages=$(dpkg --get-selections)
+
+  if [[ ! "$packages" =~ .*^libreswan[[:space:]]+install$.* ]]; then
+    configure_libreswan
+  fi
+
+  if [[ ! "$packages" =~ .*^nftables[[:space:]]+install$.* ]]; then
+    configure_nftables
+  fi
+
+  if [[ ! "$packages" =~ .*^ddclient[[:space:]]+install$.* ]]; then
+    configure_ddclient
+  fi
+}
+
+main "$@"
