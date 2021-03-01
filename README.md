@@ -53,7 +53,7 @@ The installation script configures the [DDclient](https://ddclient.net/) package
 
 ## VM creation
 
-Run the `vpngcp.ps1` PowerShell script to create a VM and configure it as a VPN server. This script requires the following parameters:
+Run the `New-VpnServer.ps1` PowerShell script to create a VM and configure it as a VPN server. This script requires the following parameters:
 
 - `InstanceName`: GCP VM instance name
 - `Zone`: free VMs are available in the following zones:
