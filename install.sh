@@ -6,7 +6,13 @@
 read_metadata() {
   declare -r api_prefix=\
 "http://metadata.google.internal/computeMetadata/v1/instance/attributes/"
-  echo "$(curl -s ${api_prefix}$1 -H "Metadata-Flavor: Google")"
+  local metadata
+  metadata="$(curl -s ${api_prefix}$1 -H "Metadata-Flavor: Google")"
+  if (( $? != 0 )); then
+    echo "Unable to read metadata $1" >&2
+    exit 1
+  fi
+  echo "$metadata"
 }
 
 trim() {
@@ -40,8 +46,8 @@ configure_libreswan() {
 
   declare -r public_fqdn="$(read_metadata "publicfqdn")"
   declare -r ipsec_id="$(read_metadata "ipsecidentifier")"
-  cat <<END > /etc/ipsec.d/ikev2-psk.conf
-conn ikev2-psk
+  cat <<END > "/etc/ipsec.d/ikev2-psk-${ipsec_id}.conf"
+conn ikev2-psk-${ipsec_id}
 	authby=secret
 	left=%defaultroute
 	leftid=@${public_fqdn}
@@ -73,7 +79,7 @@ END
 
     declare -r psk="$(read_metadata "psk")"
     cat <<END > /etc/ipsec.d/ikev2-psk.secrets
-: PSK "${psk}"
+@${ipsec_id} @${public_fqdn}: PSK "${psk}"
 END
   chmod 600 /etc/ipsec.d/ikev2-psk.secrets
 
@@ -128,7 +134,7 @@ END
 main() {
   shopt -q extglob
   declare -r extglob_unset=$?
-  ((extglob_unset)) && shopt -s extglob
+  (( extglob_unset )) && shopt -s extglob
 
   declare -r sysctl_conf=$(cat /etc/sysctl.conf)
   if [[ "$sysctl_conf" =~ .*^#net.ipv4.ip_forward=1$.* ]]; then
@@ -149,7 +155,7 @@ main() {
     configure_ddclient
   fi
 
-  ((extglob_unset)) && shopt -u extglob
+  (( extglob_unset )) && shopt -u extglob
 }
 
 main "$@"
