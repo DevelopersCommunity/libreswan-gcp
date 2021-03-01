@@ -137,23 +137,17 @@ main() {
   (( extglob_unset )) && shopt -s extglob
 
   declare -r sysctl_conf=$(cat /etc/sysctl.conf)
-  if [[ "$sysctl_conf" =~ .*^#net.ipv4.ip_forward=1$.* ]]; then
-    enable_ip_forward "$sysctl_conf"
-  fi
+  [[ "$sysctl_conf" =~ .*^#net.ipv4.ip_forward=1$.* ]] \
+    && enable_ip_forward "$sysctl_conf"
 
   declare -r packages=$(dpkg --get-selections)
 
-  if [[ ! "$packages" =~ .*^libreswan[[:space:]]+install$.* ]]; then
-    configure_libreswan
-  fi
-
-  if [[ ! "$packages" =~ .*^nftables[[:space:]]+install$.* ]]; then
-    configure_nftables
-  fi
-
-  if [[ ! "$packages" =~ .*^ddclient[[:space:]]+install$.* ]]; then
-    configure_ddclient
-  fi
+  [[ ! "$packages" =~ .*^libreswan[[:space:]]+install$.* ]] \
+    && configure_libreswan
+  [[ ! "$packages" =~ .*^nftables[[:space:]]+install$.* ]] \
+    && configure_nftables
+  [[ ! "$packages" =~ .*^ddclient[[:space:]]+install$.* ]] \
+    && configure_ddclient
 
   (( extglob_unset )) && shopt -u extglob
 }
