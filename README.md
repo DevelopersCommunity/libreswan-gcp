@@ -17,7 +17,7 @@ gcloud init
 gcloud components install beta
 ```
 
-## Project billing configuration
+## Project billing and service configuration
 
 Before creating your first VM instance, you need to link a billing account to the GCP project you will use to host your VPN server.
 
@@ -38,6 +38,9 @@ $billingAccount = gcloud beta billing accounts list `
 
 gcloud beta billing projects link $projectID `
     --billing-account=$billingAccount
+
+gcloud config set project $projectID
+gcloud services enable compute.googleapis.com
 ```
 
 ## Dynamic DNS
