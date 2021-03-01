@@ -40,7 +40,7 @@ configure_libreswan() {
 
   declare -r public_fqdn="$(read_metadata "publicfqdn")"
   declare -r ipsec_id="$(read_metadata "ipsecidentifier")"
-  cat <<EOF > /etc/ipsec.d/ikev2-psk.conf
+  cat <<END > /etc/ipsec.d/ikev2-psk.conf
 conn ikev2-psk
 	authby=secret
 	left=%defaultroute
@@ -69,12 +69,12 @@ conn ikev2-psk
 	# optional PAM username verification (eg to implement bandwidth quota
 	# pam-authorize=yes
 	ike=aes_gcm-aes_xcbc,aes_cbc-sha2
-EOF
+END
 
     declare -r psk="$(read_metadata "psk")"
-    cat <<EOF > /etc/ipsec.d/ikev2-psk.secrets
+    cat <<END > /etc/ipsec.d/ikev2-psk.secrets
 : PSK "${psk}"
-EOF
+END
   chmod 600 /etc/ipsec.d/ikev2-psk.secrets
 
   systemctl enable ipsec.service
@@ -89,16 +89,14 @@ configure_nftables() {
 
   declare -r route="$(ip route show to default)"
   declare -r dev=$(trim "${route#default via +([0-9.]) dev}")
-
-  cat <<EOF >> /etc/nftables.conf
-
+  cat <<END >> /etc/nftables.conf
 table ip nat {
 	chain postrouting {
 		type nat hook postrouting priority 100; policy accept;
 		ip saddr 192.168.66.0/24 oif "${dev}" masquerade
 	}
 }
-EOF
+END
 
   systemctl enable nftables.service
   systemctl start nftables.service
@@ -114,7 +112,7 @@ configure_ddclient() {
   declare -r dd_server="$(read_metadata "dyndnsserver")"
   declare -r dd_user="$(read_metadata "dyndnsuser")"
   declare -r dd_password="$(read_metadata "dyndnspassword")"
-  cat <<EOF > /etc/ddclient.conf
+  cat <<END > /etc/ddclient.conf
 protocol=dyndns2
 use=web
 server=${dd_server}
@@ -122,15 +120,15 @@ ssl=yes
 login=${dd_user}
 password='${dd_password}'
 ${public_fqdn}
-EOF
+END
 
   systemctl restart ddclient.service
 }
 
 main() {
   shopt -q extglob
-  declare -r extglob_set=$?
-  ((extglob_set)) && shopt -s extglob
+  declare -r extglob_unset=$?
+  ((extglob_unset)) && shopt -s extglob
 
   declare -r sysctl_conf=$(cat /etc/sysctl.conf)
   if [[ "$sysctl_conf" =~ .*^#net.ipv4.ip_forward=1$.* ]]; then
@@ -151,7 +149,7 @@ main() {
     configure_ddclient
   fi
 
-  ((extglob_set)) && shopt -u extglob
+  ((extglob_unset)) && shopt -u extglob
 }
 
 main "$@"
