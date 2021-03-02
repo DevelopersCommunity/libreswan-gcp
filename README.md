@@ -83,7 +83,7 @@ The script will output the information required to configure the VPN client.
 
 ## SSH
 
-Execute the following command to open an SSH session to your VM and check if the installation succeeded. Use the instructions at <https://cloud.google.com/compute/docs/startupscript> to view the installation script output.
+Execute the following command to open an SSH session to your VM and check if the installation succeeded. Use the instructions at <https://cloud.google.com/compute/docs/startupscript#viewing_startup_script_logs> to view the installation script output.
 
 ```powershell
 gcloud compute ssh <instance name> --zone=<zone>
