@@ -94,7 +94,9 @@ configure_nftables() {
   fi
 
   declare -r route="$(ip route show to default)"
-  declare -r dev=$(trim "${route#default via +([0-9.]) dev}")
+  local dev
+  dev=$(trim "${route#default via +([0-9.]) dev}")
+  dev="${dev%%+([[:space:]])*}"
   cat <<END >> /etc/nftables.conf
 table ip nat {
 	chain postrouting {
