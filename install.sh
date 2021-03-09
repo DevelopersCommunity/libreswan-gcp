@@ -144,6 +144,10 @@ main() {
 
   declare -r packages=$(dpkg --get-selections)
 
+  [[ ! "$packages" =~ .*^powermgmt-base[[:space:]]+install$.* ]] \
+    && apt-get install -y powermgmt-base
+  [[ ! "$packages" =~ .*^python3-gi[[:space:]]+install$.* ]] \
+    && apt-get install -y python3-gi
   [[ ! "$packages" =~ .*^libreswan[[:space:]]+install$.* ]] \
     && configure_libreswan
   [[ ! "$packages" =~ .*^nftables[[:space:]]+install$.* ]] \
