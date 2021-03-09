@@ -15,16 +15,6 @@ read_metadata() {
   echo "$metadata"
 }
 
-trim() {
-  local string
-  string="$*"
-  # remove leading whitespace characters
-  string="${string#"${string%%[![:space:]]*}"}"
-  # remove trailing whitespace characters
-  string="${string%"${string##*[![:space:]]}"}"   
-  echo "$string"
-}
-
 enable_ip_forward() {
   echo "${1/\#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1}" > /etc/sysctl.conf
   sysctl -w net.ipv4.ip_forward=1
@@ -95,7 +85,7 @@ configure_nftables() {
 
   declare -r route="$(ip route show to default)"
   local dev
-  dev=$(trim "${route#default via +([0-9.]) dev}")
+  dev="${route#default via +([0-9.]) dev+([[:space:]])}"
   dev="${dev%%+([[:space:]])*}"
   cat <<END >> /etc/nftables.conf
 table ip nat {
