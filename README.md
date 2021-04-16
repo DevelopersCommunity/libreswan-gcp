@@ -98,6 +98,7 @@ dyndns           = {
 Execute the following commands to create the VPN server:
 
 ```powershell
+gcloud auth application-default login
 terraform init
 terraform plan
 terraform apply
