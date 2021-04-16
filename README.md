@@ -59,7 +59,7 @@ The installation script configures the [DDclient](https://ddclient.net/) package
 
 The VM will be created and configured by [Terraform](https://www.terraform.io/). The `main.tf` configuration file requires the following parameters:
 
-- `project`: Google Cloud Plataform project ID
+- `project`: Google Cloud Platform project ID
 - `zone`: free VMs are available in the following zones:
   - `us-west1-a`
   - `us-west1-b`
