@@ -71,7 +71,7 @@ The VM will be created and configured by [Terraform](https://www.terraform.io/).
   - `us-east1-b`
   - `us-east1-c`
   - `us-east1-d`
-- `instance_name`: Coompute Engine VM instance name
+- `instance_name`: Compute Engine VM instance name
 - `ipsec_identifier`: IPSec identifier
 - `hostname`: Dynamic DNS hostname
 - `dyndns.server`: Dynamic DNS update server
