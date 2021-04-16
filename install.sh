@@ -34,13 +34,13 @@ configure_libreswan() {
   declare -r new_vp="${vp},%v4:"'!'"${subnet},%v4:"'!192.168.66.0/24'
   echo "${ipsec_conf/${vp}/${new_vp}}" > /etc/ipsec.conf
 
-  declare -r public_fqdn="$(read_metadata "publicfqdn")"
+  declare -r dd_hostname="$(read_metadata "dyndnshostname")"
   declare -r ipsec_id="$(read_metadata "ipsecidentifier")"
   cat <<END > "/etc/ipsec.d/ikev2-psk-${ipsec_id}.conf"
 conn ikev2-psk-${ipsec_id}
 	authby=secret
 	left=%defaultroute
-	leftid=@${public_fqdn}
+	leftid=@${dd_hostname}
 	leftsubnet=0.0.0.0/0
 	# Clients
 	right=%any
@@ -69,7 +69,7 @@ END
 
     declare -r psk="$(read_metadata "psk")"
     cat <<END > /etc/ipsec.d/ikev2-psk.secrets
-@${ipsec_id} @${public_fqdn}: PSK "${psk}"
+@${ipsec_id} @${dd_hostname}: PSK "${psk}"
 END
   chmod 600 /etc/ipsec.d/ikev2-psk.secrets
 
@@ -106,7 +106,7 @@ configure_ddclient() {
     exit 1
   fi
 
-  declare -r public_fqdn="$(read_metadata "publicfqdn")"
+  declare -r dd_hostname="$(read_metadata "dyndnshostname")"
   declare -r dd_server="$(read_metadata "dyndnsserver")"
   declare -r dd_user="$(read_metadata "dyndnsuser")"
   declare -r dd_password="$(read_metadata "dyndnspassword")"
@@ -117,7 +117,7 @@ server=${dd_server}
 ssl=yes
 login=${dd_user}
 password='${dd_password}'
-${public_fqdn}
+${dd_hostname}
 END
 
   systemctl restart ddclient.service

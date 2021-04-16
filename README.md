@@ -17,6 +17,10 @@ gcloud init
 gcloud components install beta
 ```
 
+## Terraform installation
+
+Follow the instructions at <https://learn.hashicorp.com/tutorials/terraform/install-cli?in=terraform/gcp-get-started> to install Terraform.
+
 ## Project billing and service configuration
 
 Before creating your first VM instance, you need to link a billing account to the GCP project you will use to host your VPN server and enable the `compute.googleapis.com` service.
@@ -33,7 +37,7 @@ $projectID = gcloud projects list `
 
 gcloud beta billing accounts list
 $billingAccount = gcloud beta billing accounts list `
-    --filter="displayName:'Minha conta de faturamento'" `
+    --filter="displayName:'My Billing Account'" `
     --format="value(name)"
 
 gcloud beta billing projects link $projectID `
@@ -49,14 +53,14 @@ GCP doesn't have a feature to create a public DNS name for virtual machines and 
 
 There are a few free Dynamic DNS service providers available, such as [No-IP.com](https://www.noip.com/remote-access). If you own a domain name, it is possible that your registrar provides this service (for example, [Google Domains](https://support.google.com/domains/answer/6147083).)
 
-The installation script configures the [DDclient](https://ddclient.net/) package to update the dynamic DNS entry using the [dyndns2 protocol](https://ddclient.net/protocols.html#dyndns2). If you select a provider that doesn't support this protocol, you will need to adapt the script.
+The installation script configures the [DDclient](https://ddclient.net/) package to update the dynamic DNS entry using the [dyndns2 protocol](https://ddclient.net/protocols.html#dyndns2). If you select a provider that doesn't support this protocol, you will need to adapt the startup script (`install.sh`).
 
 ## VM creation
 
-Run the `New-VpnServer.ps1` PowerShell script to create a VM and configure it as a VPN server. This script requires the following parameters:
+The VM will be created and configured by [Terraform](https://www.terraform.io/). The `main.tf` configuration file requires the following parameters:
 
-- `InstanceName`: GCP VM instance name
-- `Zone`: free VMs are available in the following zones:
+- `project`: Google Cloud Plataform project ID
+- `zone`: free VMs are available in the following zones:
   - `us-west1-a`
   - `us-west1-b`
   - `us-west1-c`
@@ -67,19 +71,39 @@ Run the `New-VpnServer.ps1` PowerShell script to create a VM and configure it as
   - `us-east1-b`
   - `us-east1-c`
   - `us-east1-d`
-- `PublicFqdn`: Dynamic DNS name
-- `IPSecIdentifier`: IPSec identifier
-- `DynDnsServer`: Dynamic DNS update server
+- `instance_name`: Coompute Engine VM instance name
+- `ipsec_identifier`: IPSec identifier
+- `hostname`: Dynamic DNS hostname
+- `dyndns.server`: Dynamic DNS update server
   - No-IP.com: `dynupdate.no-ip.com`
   - Google Domains: `domains.google.com`
-- `DynDnsUser`: Dynamic DNS service user name
-- `DynDnsPassword`: Dynamic DNS service password
+- `dyndns.user`: Dynamic DNS service user name
+- `dyndns.password`: Dynamic DNS service password
 
-The script will output the information required to configure the VPN client.
+Create a file with name `terraform.tfvars` with those parameters using the following format:
+
+```ini
+project          = "<GCP project ID>"
+zone             = "<GCP zone>"
+instance_name    = "instance-1"
+ipsec_identifier = "<IPSec Identifier>"
+hostname         = "<hostname>"
+dyndns           = {
+    server   = "<Dynamic DNS update server>"
+    user     = "<Dynamic DNS user name>"
+    password = "<Dynamic DNS password>"
+}
+```
+
+Execute the following commands to create the VPN server:
 
 ```powershell
-.\New-VpnServer.ps1
+terraform init
+terraform plan
+terraform apply
 ```
+
+Terraform will output the information required to configure the VPN client.
 
 ## SSH
 
@@ -91,15 +115,20 @@ gcloud compute ssh <instance name> --zone=<zone>
 
 ## VPN client configuration
 
-The VM creation script outputs the required information to configure the VPN client. If necessary, use the following commands to recover it.
+Terraform will output the required information to configure the VPN client. If necessary, use the following commands to recover it.
 
 ```powershell
+# server_address
 gcloud compute instances describe <instance name> `
     --zone <instance zone> `
-    --flatten="metadata[publicfqdn]"
+    --flatten="metadata[dyndnshostname]"
+
+# ipsec_identifier
 gcloud compute instances describe <instance name> `
     --zone <instance zone> `
     --flatten="metadata[ipsecidentifier]"
+
+# ipsec_pre_shared_key
 gcloud compute instances describe <instance name> `
     --zone <instance zone> `
     --flatten="metadata[psk]"
@@ -110,9 +139,9 @@ gcloud compute instances describe <instance name> `
 Use the following values to configure the Android VPN client:
 
 - Type: IKEv2/IPSec PSK
-- Server address: `publicfqdn`
-- IPSec identifier: `ipsecidentifier`
-- IPSec pre-shared key: `psk`
+- Server address: `server_address`
+- IPSec identifier: `ipsec_identifier`
+- IPSec pre-shared key: `ipsec_pre_shared_key`
 
 ![Android native IKEv2/IPSec PSK VPN client](vpnandroid.png)
 
@@ -121,11 +150,11 @@ Use the following values to configure the Android VPN client:
 Use the following values to configure the iOS VPN client:
 
 - Type: IKEv2
-- Server: `publicfqdn`
-- Remote ID: `publicfqdn`
-- Local ID: `ipsecidentifier`
+- Server: `server_address`
+- Remote ID: `server_address`
+- Local ID: `ipsec_identifier`
 - User Authentication: None
 - Use Certificate: off
-- Secret: `psk`
+- Secret: `ipsec_pre_shared_key`
 
 ![iOS native IKEv2 VPN client](vpnios.png)
