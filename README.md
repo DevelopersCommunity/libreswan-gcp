@@ -85,7 +85,7 @@ Create a file with name `terraform.tfvars` with those parameters using the follo
 ```ini
 project          = "<GCP project ID>"
 zone             = "<GCP zone>"
-instance_name    = "instance-1"
+instance_name    = "<Compute Engine VM instance name>"
 ipsec_identifier = "<IPSec Identifier>"
 hostname         = "<hostname>"
 dyndns           = {
