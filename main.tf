@@ -5,7 +5,7 @@ variable "project" {
 
 variable "zone" {
   type        = string
-  description = "Google cloud zone."
+  description = "Google Cloud zone."
 
   validation {
     condition     = contains([
@@ -93,7 +93,7 @@ resource "google_compute_firewall" "vpn" {
 
 resource "google_compute_instance" "vpn" {
   name                    = var.instance_name
-  machine_type            = "f1-micro"
+  machine_type            = "e2-micro"
   can_ip_forward          = true
   tags                    = ["vpn-server"]
   metadata_startup_script = file("./install.sh")
@@ -108,6 +108,7 @@ resource "google_compute_instance" "vpn" {
   }
 
   boot_disk {
+    auto_delete = true
     initialize_params {
       image = "debian-cloud/debian-10"
     }

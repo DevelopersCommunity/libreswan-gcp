@@ -3,26 +3,62 @@
 # VM startup script - https://cloud.google.com/compute/docs/startupscript
 # Install and configure IKEv2/IPSec PSK VPN server components.
 
+#######################################
+# Print out error messages.
+# Globals:
+#   None
+# Arguments:
+#   Error message
+# Outputs:
+#   Formatted error message
+#######################################
+err() {
+  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $*" >&2
+}
+
+#######################################
+# Retrieve VM instance metadata.
+# Globals:
+#   None
+# Arguments:
+#   Metadata key
+# Outputs:
+#   Metadata value
+#######################################
 read_metadata() {
   declare -r api_prefix=\
 "http://metadata.google.internal/computeMetadata/v1/instance/attributes/"
   local metadata
   metadata="$(curl -s ${api_prefix}$1 -H "Metadata-Flavor: Google")"
   if (( $? != 0 )); then
-    echo "Unable to read metadata $1" >&2
+    err "Unable to read metadata $1"
     exit 1
   fi
   echo "$metadata"
 }
 
+#######################################
+# Enable IP forward.
+# Globals:
+#   None
+# Arguments:
+#   /etc/sysctl.conf file content
+#######################################
 enable_ip_forward() {
   echo "${1/\#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1}" > /etc/sysctl.conf
   sysctl -w net.ipv4.ip_forward=1
 }
 
+#######################################
+# Install and configure Librewan.
+# Globals:
+#   None
+# Arguments:
+#   None
+#######################################
 configure_libreswan() {
   if ! apt-get -y install libreswan; then
-    echo "Unable to install libreswan" >&2
+    err "Unable to install libreswan"
     exit 1
   fi
 
@@ -77,9 +113,16 @@ END
   systemctl start ipsec.service
 }
 
+#######################################
+# Install and configure nftables.
+# Globals:
+#   None
+# Arguments:
+#   None
+#######################################
 configure_nftables() {
   if ! apt-get -y install nftables; then
-    echo "Unable to install nftables" >&2
+    err "Unable to install nftables"
     exit 1
   fi
 
@@ -100,9 +143,16 @@ END
   systemctl start nftables.service
 }
 
+#######################################
+# Install and configure DDclient.
+# Globals:
+#   None
+# Arguments:
+#   None
+#######################################
 configure_ddclient() {
   if ! DEBIAN_FRONTEND=noninteractive apt-get -y install ddclient; then
-    echo "Unable to install ddclient" >&2
+    err "Unable to install ddclient"
     exit 1
   fi
 
@@ -123,6 +173,13 @@ END
   systemctl restart ddclient.service
 }
 
+#######################################
+# VM startup script entrypoint.
+# Globals:
+#   None
+# Arguments:
+#   None
+#######################################
 main() {
   shopt -q extglob
   declare -r extglob_unset=$?
@@ -134,10 +191,12 @@ main() {
 
   declare -r packages=$(dpkg --get-selections)
 
+  # powermgmt-base and python3-gi are used by unattended-upgrades
   [[ ! "$packages" =~ .*^powermgmt-base[[:space:]]+install$.* ]] \
     && apt-get install -y powermgmt-base
   [[ ! "$packages" =~ .*^python3-gi[[:space:]]+install$.* ]] \
     && apt-get install -y python3-gi
+
   [[ ! "$packages" =~ .*^libreswan[[:space:]]+install$.* ]] \
     && configure_libreswan
   [[ ! "$packages" =~ .*^nftables[[:space:]]+install$.* ]] \
