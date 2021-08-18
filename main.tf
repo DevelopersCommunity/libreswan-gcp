@@ -110,7 +110,7 @@ resource "google_compute_instance" "vpn" {
   boot_disk {
     auto_delete = true
     initialize_params {
-      image = "debian-cloud/debian-10"
+      image = "debian-cloud/debian-11"
     }
   }
 
