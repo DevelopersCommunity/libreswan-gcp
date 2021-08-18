@@ -26,15 +26,14 @@ err() {
 #   Metadata value
 #######################################
 read_metadata() {
-  declare -r api_prefix=\
+  readonly API_PREFIX=\
 "http://metadata.google.internal/computeMetadata/v1/instance/attributes/"
-  local metadata
-  metadata="$(curl -s ${api_prefix}$1 -H "Metadata-Flavor: Google")"
-  if (( $? != 0 )); then
+  local md
+  if ! md="$(curl -s ${API_PREFIX}"$1" -H "Metadata-Flavor: Google")"; then
     err "Unable to read metadata $1"
     exit 1
   fi
-  echo "$metadata"
+  echo "$md"
 }
 
 #######################################
@@ -62,16 +61,20 @@ configure_libreswan() {
     exit 1
   fi
 
-  declare -r ipsec_conf=$(cat /etc/ipsec.conf)
+  local ipsec_conf
+  ipsec_conf=$(cat /etc/ipsec.conf)
   local vp
   vp="${ipsec_conf#"${ipsec_conf%%virtual_private=*}"}"
   vp="${vp%%[[:cntrl:]]*}"
-  declare -r subnet="$(read_metadata "subnet")"
+  local subnet
+  subnet=$(read_metadata "subnet")
   declare -r new_vp="${vp},%v4:"'!'"${subnet},%v4:"'!192.168.66.0/24'
   echo "${ipsec_conf/${vp}/${new_vp}}" > /etc/ipsec.conf
 
-  declare -r dd_hostname="$(read_metadata "dyndnshostname")"
-  declare -r ipsec_id="$(read_metadata "ipsecidentifier")"
+  local dd_hostname
+  dd_hostname=$(read_metadata "dyndnshostname")
+  local ipsec_id
+  ipsec_id=$(read_metadata "ipsecidentifier")
   cat <<END > "/etc/ipsec.d/ikev2-psk-${ipsec_id}.conf"
 conn ikev2-psk-${ipsec_id}
 	authby=secret
@@ -103,7 +106,8 @@ conn ikev2-psk-${ipsec_id}
 	ike=aes_gcm-aes_xcbc,aes_cbc-sha2
 END
 
-    declare -r psk="$(read_metadata "psk")"
+    local psk
+    psk=$(read_metadata "psk")
     cat <<END > /etc/ipsec.d/ikev2-psk.secrets
 @${ipsec_id} @${dd_hostname}: PSK "${psk}"
 END
@@ -126,7 +130,8 @@ configure_nftables() {
     exit 1
   fi
 
-  declare -r route="$(ip route show to default)"
+  local route
+  route=$(ip route show to default)
   local dev
   dev="${route#default via +([0-9.]) dev+([[:space:]])}"
   dev="${dev%%+([[:space:]])*}"
@@ -156,10 +161,14 @@ configure_ddclient() {
     exit 1
   fi
 
-  declare -r dd_hostname="$(read_metadata "dyndnshostname")"
-  declare -r dd_server="$(read_metadata "dyndnsserver")"
-  declare -r dd_user="$(read_metadata "dyndnsuser")"
-  declare -r dd_password="$(read_metadata "dyndnspassword")"
+  local dd_hostname
+  dd_hostname=$(read_metadata "dyndnshostname")
+  local dd_server
+  dd_server=$(read_metadata "dyndnsserver")
+  local dd_user
+  dd_user=$(read_metadata "dyndnsuser")
+  local dd_password
+  dd_password=$(read_metadata "dyndnspassword")
   cat <<END > /etc/ddclient.conf
 protocol=dyndns2
 use=web
@@ -185,11 +194,13 @@ main() {
   declare -r extglob_unset=$?
   (( extglob_unset )) && shopt -s extglob
 
-  declare -r sysctl_conf=$(cat /etc/sysctl.conf)
+  local sysctl_conf
+  sysctl_conf=$(cat /etc/sysctl.conf)
   [[ "$sysctl_conf" =~ .*^#net.ipv4.ip_forward=1$.* ]] \
     && enable_ip_forward "$sysctl_conf"
 
-  declare -r packages=$(dpkg --get-selections)
+  local packages
+  packages=$(dpkg --get-selections)
 
   # powermgmt-base and python3-gi are used by unattended-upgrades
   [[ ! "$packages" =~ .*^powermgmt-base[[:space:]]+install$.* ]] \
