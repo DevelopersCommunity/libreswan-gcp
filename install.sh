@@ -1,6 +1,5 @@
 #!/bin/bash
 #
-# VM startup script - https://cloud.google.com/compute/docs/startupscript
 # Install and configure IKEv2/IPSec PSK VPN server components.
 
 #######################################
@@ -56,21 +55,6 @@ enable_ip_forward() {
 #   None
 #######################################
 configure_libreswan() {
-  if ! apt-get -y install libreswan; then
-    err "Unable to install libreswan"
-    exit 1
-  fi
-
-  local ipsec_conf
-  ipsec_conf=$(cat /etc/ipsec.conf)
-  local vp
-  vp="${ipsec_conf#"${ipsec_conf%%virtual_private=*}"}"
-  vp="${vp%%[[:cntrl:]]*}"
-  local subnet
-  subnet=$(read_metadata "subnet")
-  declare -r new_vp="${vp},%v4:"'!'"${subnet},%v4:"'!192.168.66.0/24'
-  echo "${ipsec_conf/${vp}/${new_vp}}" > /etc/ipsec.conf
-
   local dd_hostname
   dd_hostname=$(read_metadata "dyndnshostname")
   local ipsec_id
@@ -125,11 +109,6 @@ END
 #   None
 #######################################
 configure_nftables() {
-  if ! apt-get -y install nftables; then
-    err "Unable to install nftables"
-    exit 1
-  fi
-
   local route
   route=$(ip route show to default)
   local dev
@@ -156,11 +135,6 @@ END
 #   None
 #######################################
 configure_ddclient() {
-  if ! DEBIAN_FRONTEND=noninteractive apt-get -y install ddclient; then
-    err "Unable to install ddclient"
-    exit 1
-  fi
-
   local dd_hostname
   dd_hostname=$(read_metadata "dyndnshostname")
   local dd_server
@@ -199,21 +173,9 @@ main() {
   [[ "$sysctl_conf" =~ .*^#net.ipv4.ip_forward=1$.* ]] \
     && enable_ip_forward "$sysctl_conf"
 
-  local packages
-  packages=$(dpkg --get-selections)
-
-  # powermgmt-base and python3-gi are used by unattended-upgrades
-  [[ ! "$packages" =~ .*^powermgmt-base[[:space:]]+install$.* ]] \
-    && apt-get install -y powermgmt-base
-  [[ ! "$packages" =~ .*^python3-gi[[:space:]]+install$.* ]] \
-    && apt-get install -y python3-gi
-
-  [[ ! "$packages" =~ .*^libreswan[[:space:]]+install$.* ]] \
-    && configure_libreswan
-  [[ ! "$packages" =~ .*^nftables[[:space:]]+install$.* ]] \
-    && configure_nftables
-  [[ ! "$packages" =~ .*^ddclient[[:space:]]+install$.* ]] \
-    && configure_ddclient
+  configure_libreswan
+  configure_nftables
+  configure_ddclient
 
   (( extglob_unset )) && shopt -u extglob
 }

@@ -1,0 +1,19 @@
+#cloud-config
+
+packages:
+  - libreswan
+  - nftables
+  - ddclient
+package_update: true
+package_upgrade: true
+package_reboot_if_required: true
+
+write_files:
+  - encoding: b64
+    content: <install.sh>
+    owner: root:root
+    path: /run/vpn/install.sh
+    permissions: '0700'
+
+runcmd:
+  - [ /run/vpn/install.sh ]

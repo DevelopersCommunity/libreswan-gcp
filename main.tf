@@ -49,18 +49,6 @@ variable "dyndns" {
   sensitive   = true
 }
 
-data "external" "subnet" {
-  program = [
-    "gcloud",
-    "compute",
-    "networks",
-    "subnets",
-    "describe",
-    "default",
-    "--region=${substr(var.zone, 0, length(var.zone) - 2)}",
-    "--format=json(ipCidrRange)"]
-}
-
 provider "google" {
   project = var.project
   region  = substr(var.zone, 0, length(var.zone) - 2)
@@ -96,11 +84,10 @@ resource "google_compute_instance" "vpn" {
   machine_type            = "e2-micro"
   can_ip_forward          = true
   tags                    = ["vpn-server"]
-  metadata_startup_script = file("./install.sh")
   metadata                = {
+    "user-data"       = replace(file("config.yaml"), "<install.sh>", base64encode(file("install.sh")))
     "psk"             = local.psk
     "ipsecidentifier" = var.ipsec_identifier
-    "subnet"          = data.external.subnet.result.ipCidrRange
     "dyndnshostname"  = var.hostname
     "dyndnsserver"    = var.dyndns.server
     "dyndnsuser"      = var.dyndns.user
@@ -110,7 +97,7 @@ resource "google_compute_instance" "vpn" {
   boot_disk {
     auto_delete = true
     initialize_params {
-      image = "debian-cloud/debian-11"
+      image = "ubuntu-os-cloud/ubuntu-minimal-2004-lts"
     }
   }
 
