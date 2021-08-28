@@ -63,7 +63,7 @@ configure_libreswan() {
 conn ikev2-psk-${ipsec_id}
 	authby=secret
 	left=%defaultroute
-	leftid=@${dd_hostname}
+	leftid=@$(read_metadata "dyndnshostname")
 	leftsubnet=0.0.0.0/0
 	# Clients
 	right=%any
@@ -90,10 +90,8 @@ conn ikev2-psk-${ipsec_id}
 	ike=aes_gcm-aes_xcbc,aes_cbc-sha2
 END
 
-    local psk
-    psk=$(read_metadata "psk")
     cat <<END > /etc/ipsec.d/ikev2-psk.secrets
-@${ipsec_id} @${dd_hostname}: PSK "${psk}"
+@${ipsec_id} @${dd_hostname}: PSK "$(read_metadata "psk")"
 END
   chmod 600 /etc/ipsec.d/ikev2-psk.secrets
 
@@ -135,22 +133,14 @@ END
 #   None
 #######################################
 configure_ddclient() {
-  local dd_hostname
-  dd_hostname=$(read_metadata "dyndnshostname")
-  local dd_server
-  dd_server=$(read_metadata "dyndnsserver")
-  local dd_user
-  dd_user=$(read_metadata "dyndnsuser")
-  local dd_password
-  dd_password=$(read_metadata "dyndnspassword")
   cat <<END > /etc/ddclient.conf
 protocol=dyndns2
 use=web
-server=${dd_server}
+server=$(read_metadata "dyndnsserver")
 ssl=yes
-login=${dd_user}
-password='${dd_password}'
-${dd_hostname}
+login=$(read_metadata "dyndnsuser")
+password='$(read_metadata "dyndnspassword")'
+$(read_metadata "dyndnshostname")
 END
 
   systemctl restart ddclient.service
