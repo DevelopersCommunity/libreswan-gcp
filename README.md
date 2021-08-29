@@ -4,10 +4,6 @@ How to create a personal VPN Server on [Google Cloud Platform (GCP)](https://clo
 
 Both [Android 11 or higher](https://source.android.com/devices/architecture/modular-system/ipsec) and [iOS 4.0+](https://developer.apple.com/documentation/devicemanagement/vpn/ikev2) devices can connect to IKEv2/IPSec VPN servers with their native VPN clients.
 
-## PowerShell installation
-
-Follow the instructions at <https://docs.microsoft.com/powershell/scripting/install/installing-powershell> to install PowerShell.
-
 ## gcloud command-line tool installation
 
 Follow the instructions at <https://cloud.google.com/sdk/docs/install> to install the gcloud CLI, then run the following commands to initialize it and install the required components.
@@ -108,7 +104,7 @@ Terraform will output the information required to configure the VPN client.
 
 ## SSH
 
-Execute the following command to open an SSH session to your VM and check if the installation succeeded. Use the instructions at <https://cloud.google.com/compute/docs/startupscript#viewing_startup_script_logs> to view the installation script output.
+Execute the following command to open an SSH session to your VM and check if the installation succeeded.
 
 ```powershell
 gcloud compute ssh <instance name> --zone=<zone>
@@ -116,24 +112,7 @@ gcloud compute ssh <instance name> --zone=<zone>
 
 ## VPN client configuration
 
-Terraform will output the required information to configure the VPN client. If necessary, use the following commands to recover it.
-
-```powershell
-# server_address
-gcloud compute instances describe <instance name> `
-    --zone <instance zone> `
-    --flatten="metadata[dyndnshostname]"
-
-# ipsec_identifier
-gcloud compute instances describe <instance name> `
-    --zone <instance zone> `
-    --flatten="metadata[ipsecidentifier]"
-
-# ipsec_pre_shared_key
-gcloud compute instances describe <instance name> `
-    --zone <instance zone> `
-    --flatten="metadata[psk]"
-```
+Terraform will output the required information to configure the VPN client (server address, IPSec identifier, and pre-shared key).
 
 ### Android 11 native IKEv2/IPSec PSK VPN client configuration
 
