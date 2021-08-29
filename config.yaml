@@ -10,10 +10,29 @@ package_reboot_if_required: true
 
 write_files:
   - encoding: b64
-    content: <install.sh>
+    content: <nftables.sh>
     owner: root:root
-    path: /run/vpn/install.sh
+    path: /run/vpn/nftables.sh
     permissions: '0700'
+  - encoding: b64
+    content: <ddclient.conf>
+    owner: root:root
+    path: /etc/ddclient.conf
+    permissions: '0600'
+  - encoding: b64
+    content: <ikev2-psk.conf>
+    owner: root:root
+    path: /etc/ipsec.d/ikev2-psk-<ipsec_id>.conf
+  - encoding: b64
+    content: <ikev2-psk.secrets>
+    owner: root:root
+    path: /etc/ipsec.d/ikev2-psk.secrets
+    permissions: '0600'
 
 runcmd:
-  - [ /run/vpn/install.sh ]
+  - [ /run/vpn/nftables.sh ]
+  - [ sed, -i, "s/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/g", /etc/sysctl.conf ]
+  - [ sysctl, -w, net.ipv4.ip_forward=1 ]
+  - [ systemctl, enable, ipsec.service ]
+  - [ systemctl, start, ipsec.service ]
+  - [ systemctl, restart, ddclient.service ]

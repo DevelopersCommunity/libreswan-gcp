@@ -66,6 +66,18 @@ resource "random_password" "psk" {
 
 locals {
   psk = random_password.psk.result
+  ddclient = replace(
+    replace(
+      replace(
+        replace(file("ddclient.conf"), "<server>", var.dyndns.server),
+        "<user>", var.dyndns.user),
+      "<password>", var.dyndns.password),
+    "<hostname>", var.hostname
+  )
+  ikev2psk = replace(
+    replace(file("ikev2-psk.conf"), "<ipsec_id>", var.ipsec_identifier),
+      "<hostname>", var.hostname
+  )
 }
 
 resource "google_compute_firewall" "vpn" {
@@ -85,13 +97,23 @@ resource "google_compute_instance" "vpn" {
   can_ip_forward          = true
   tags                    = ["vpn-server"]
   metadata                = {
-    "user-data"       = replace(file("config.yaml"), "<install.sh>", base64encode(file("install.sh")))
-    "psk"             = local.psk
-    "ipsecidentifier" = var.ipsec_identifier
-    "dyndnshostname"  = var.hostname
-    "dyndnsserver"    = var.dyndns.server
-    "dyndnsuser"      = var.dyndns.user
-    "dyndnspassword"  = var.dyndns.password
+    "user-data"       = replace(
+      replace(
+        replace(
+          replace(
+            replace(
+              file("config.yaml"),
+              "<nftables.sh>",
+              base64encode(file("nftables.sh"))),
+            "<ddclient.conf>", base64encode(local.ddclient)
+          ), "<ipsec_id>", var.ipsec_identifier
+        ), "<ikev2-psk.conf>", base64encode(local.ikev2psk)
+      ),
+      "<ikev2-psk.secrets>",
+      base64encode(
+        "@${var.ipsec_identifier} @${var.hostname}: PSK \"${local.psk}\""
+      )
+    )
   }
 
   boot_disk {
