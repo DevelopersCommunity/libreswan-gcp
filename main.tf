@@ -141,11 +141,6 @@ locals {
 
   write_files:
     - encoding: b64
-      content: ${base64encode(file("nftables.sh"))}
-      owner: root:root
-      path: /run/vpn/nftables.sh
-      permissions: '0700'
-    - encoding: b64
       content: ${base64encode(local.ddclientconf)}
       owner: root:root
       path: /etc/ddclient.conf
@@ -170,7 +165,6 @@ locals {
       permissions: '0600'
 
   runcmd:
-    - [ /run/vpn/nftables.sh ]
     - [ sed,
       -i,
       "s/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/g",
@@ -179,6 +173,17 @@ locals {
     - [ systemctl, enable, ipsec.service ]
     - [ systemctl, start, ipsec.service ]
     - [ systemctl, restart, ddclient.service ]
+    - [ systemctl, enable, nftables.service ]
+    - [ systemctl, start, nftables.service ]
+    - [ nft, add, table, nat ]
+    - [ nft,
+      'add chain nat postrouting { type nat hook postrouting priority 100 ; }']
+    - nft add rule nat postrouting ip saddr 192.168.66.0/24
+      oifname "$(ip route show to default | awk '{printf $5}')" masquerade
+    - echo "#!/usr/sbin/nft -f" > /etc/nftables.conf
+    - echo "flush ruleset" >> /etc/nftables.conf
+    - nft list ruleset >> /etc/nftables.conf
+    - [ systemctl, restart, nftables.service ]
   EOT
 }
 
