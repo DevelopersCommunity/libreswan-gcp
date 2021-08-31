@@ -55,7 +55,7 @@ provider "google" {
   zone    = var.zone
 }
 
-resource "random_password" "psk" {
+resource "random_string" "psk" {
   length           = 32
   lower            = true
   upper            = true
@@ -65,7 +65,7 @@ resource "random_password" "psk" {
 }
 
 locals {
-  psk = random_password.psk.result
+  psk = random_string.psk.result
 
   ddclientconf = <<-EOT
   protocol=dyndns2
@@ -90,11 +90,11 @@ locals {
   # established. This might be useful, if you are using dial-on-demand.
   run_ipup="false"
 
-  run_daemon="true"
-
-  # Set the time interval between the updates of the dynamic DNS name in seconds.
+  # Set the time interval between the updates of the dynamic DNS name.
   # This option only takes effect if the ddclient runs in daemon mode.
   daemon_interval="5m"
+
+  run_daemon="true"
   EOT
 
   ikev2psk = <<-EOT
@@ -234,5 +234,4 @@ output "ipsec_identifier" {
 output "ipsec_pre_shared_key" {
   value       = local.psk
   description = "IPSec pre-shared key."
-  sensitive   = true
 }

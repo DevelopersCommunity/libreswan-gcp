@@ -19,7 +19,7 @@ configure_nftables() {
 table ip nat {
 	chain postrouting {
 		type nat hook postrouting priority 100; policy accept;
-		ip saddr 192.168.66.0/24 oif "${dev}" masquerade
+		ip saddr 192.168.66.0/24 oifname "${dev}" masquerade
 	}
 }
 END
