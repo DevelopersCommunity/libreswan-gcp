@@ -87,6 +87,7 @@ locals {
 
   packages:
     - libreswan
+    - nftables
     - firewalld
     - ddclient
   package_update: true
@@ -130,8 +131,11 @@ locals {
     - [ systemctl, enable, ipsec.service ]
     - [ systemctl, start, ipsec.service ]
     - [ systemctl, restart, ddclient.service ]
-    - [ systemctl, enable, firewalld.service ]
-    - [ systemctl, start, firewalld.service ]
+    - [ sed,
+      -i,
+      "s/FirewallBackend=iptables/FirewallBackend=nftables/g",
+      /etc/firewalld/firewalld.conf ]
+    - [ systemctl, restart, firewalld.service ]
     - firewall-cmd --zone=external
       --change-interface="$(ip route show to default | awk '{printf $5}')"
       --permanent
