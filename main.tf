@@ -87,7 +87,7 @@ locals {
 
   packages:
     - libreswan
-    - nftables
+    - firewalld
     - ddclient
   package_update: true
   package_upgrade: true
@@ -130,17 +130,21 @@ locals {
     - [ systemctl, enable, ipsec.service ]
     - [ systemctl, start, ipsec.service ]
     - [ systemctl, restart, ddclient.service ]
-    - [ systemctl, enable, nftables.service ]
-    - [ systemctl, start, nftables.service ]
-    - [ nft, add, table, nat ]
-    - [ nft,
-      'add chain nat postrouting { type nat hook postrouting priority 100 ; }' ]
-    - nft add rule nat postrouting ip saddr 192.168.66.0/24
-      oifname "$(ip route show to default | awk '{printf $5}')" masquerade
-    - echo "#!/usr/sbin/nft -f" > /etc/nftables.conf
-    - echo "flush ruleset" >> /etc/nftables.conf
-    - nft list ruleset >> /etc/nftables.conf
-    - [ systemctl, restart, nftables.service ]
+    - [ systemctl, enable, firewalld.service ]
+    - [ systemctl, start, firewalld.service ]
+    - firewall-cmd --zone=external
+      --change-interface="$(ip route show to default | awk '{printf $5}')"
+      --permanent
+    - [ firewall-cmd,
+      --zone=external,
+      --add-port=500/udp,
+      --add-port=4500/udp,
+      --permanent ]
+    - [ firewall-cmd,
+      --zone=external,
+      --add-source=192.168.66.0/24,
+      --permanent ]
+    - [ firewall-cmd, --reload ]
   EOT
 }
 
