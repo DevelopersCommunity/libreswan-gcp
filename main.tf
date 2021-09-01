@@ -1,61 +1,10 @@
-variable "project" {
-  type        = string
-  description = "Google Cloud project ID."
-}
-
-variable "zone" {
-  type        = string
-  description = "Google Cloud zone."
-
-  validation {
-    condition     = contains([
-      "us-west1-a",
-      "us-west1-b",
-      "us-west1-c",
-      "us-central1-a",
-      "us-central1-b",
-      "us-central1-c",
-      "us-central1-f",
-      "us-east1-b",
-      "us-east1-c",
-      "us-east1-d"
-    ], var.zone)
-    error_message = "Invalid GCP free tier zone."
-  }
-}
-
-variable "instance_name" {
-  type        = string
-  description = "Compute Engine VM instance name."
-}
-
-variable "ipsec_identifier" {
-  type        = string
-  description = "IPSec identifier."
-}
-
-variable "hostname" {
-  type        = string
-  description = "Hostname."
-}
-
-variable "dyndns" {
-  type        = object({
-    server   = string
-    user     = string
-    password = string
-  })
-  description = "Dynamic DNS parameters."
-  sensitive   = true
-}
-
 provider "google" {
   project = var.project
   region  = substr(var.zone, 0, length(var.zone) - 2)
   zone    = var.zone
 }
 
-resource "random_string" "psk" {
+resource "random_password" "psk" {
   length           = 32
   lower            = true
   upper            = true
@@ -65,9 +14,11 @@ resource "random_string" "psk" {
 }
 
 locals {
-  psk = random_string.psk.result
-
   ddclientconf = <<-EOT
+  # Configuration file for ddclient
+  #
+  # /etc/ddclient.conf
+
   protocol=dyndns2
   use=web
   server=${var.dyndns.server}
@@ -90,11 +41,14 @@ locals {
   # established. This might be useful, if you are using dial-on-demand.
   run_ipup="false"
 
-  # Set the time interval between the updates of the dynamic DNS name.
-  # This option only takes effect if the ddclient runs in daemon mode.
-  daemon_interval="5m"
-
+  # Set to "true" if ddclient should run in daemon mode
+  # If this is changed to true, run_ipup and run_dhclient must be set to false.
   run_daemon="true"
+
+  # Set the time interval between the updates of the dynamic DNS name in
+  # seconds.
+  # This option only takes effect if the ddclient runs in daemon mode.
+  daemon_interval="300"
   EOT
 
   ikev2psk = <<-EOT
@@ -157,7 +111,10 @@ locals {
     - encoding: b64
       content: ${
         base64encode(
-          "@${var.ipsec_identifier} @${var.hostname}: PSK \"${local.psk}\""
+          format(
+            "@${var.ipsec_identifier} @${var.hostname}: PSK \"%s\"",
+            random_password.psk.result
+          )
         )
       }
       owner: root:root
@@ -177,7 +134,7 @@ locals {
     - [ systemctl, start, nftables.service ]
     - [ nft, add, table, nat ]
     - [ nft,
-      'add chain nat postrouting { type nat hook postrouting priority 100 ; }']
+      'add chain nat postrouting { type nat hook postrouting priority 100 ; }' ]
     - nft add rule nat postrouting ip saddr 192.168.66.0/24
       oifname "$(ip route show to default | awk '{printf $5}')" masquerade
     - echo "#!/usr/sbin/nft -f" > /etc/nftables.conf
@@ -224,19 +181,4 @@ resource "google_compute_instance" "vpn" {
       enable_vtpm                 = true
       enable_integrity_monitoring = true
   }
-}
-
-output "server_address" {
-  value       = var.hostname
-  description = "Server address."
-}
-
-output "ipsec_identifier" {
-  value       = var.ipsec_identifier
-  description = "IPSec identifier."
-}
-
-output "ipsec_pre_shared_key" {
-  value       = local.psk
-  description = "IPSec pre-shared key."
 }
